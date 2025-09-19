@@ -24,20 +24,20 @@ const chartConfig = {
   "PM2.5": { label: "PM2.5", color: "hsl(var(--chart-5))" },
 } satisfies ChartConfig;
 
-type MonthRange = {
+export type MonthRange = {
   start: { month: number; year: number };
   end: { month: number; year: number };
 };
 
-const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
-const currentYear = new Date().getFullYear();
-const YEARS = Array.from({ length: 6 }, (_, i) => currentYear - 5 + i); // e.g., 2020..current
+export const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+export const currentYear = new Date().getFullYear();
+export const YEARS = Array.from({ length: 6 }, (_, i) => currentYear - 5 + i); // e.g., 2020..current
 
 export function EmissionsPieCard() {
   // Default range: Jan–Jun 2024
   const [range, setRange] = useState<MonthRange>({
     start: { month: 0, year: 2024 },
-    end:   { month: 5, year: 2024 },
+    end: { month: 5, year: 2024 },
   });
 
   // Format range for the header
@@ -100,13 +100,14 @@ export function EmissionsPieCard() {
 }
 
 // Month range picker used in the header (Popover + Selects)
-function MonthRangePicker({
+export function MonthRangePicker({
   value,
   onChange,
 }: {
   value: MonthRange;
   onChange: (next: MonthRange) => void;
 }) {
+  const [open, setOpen] = useState(false);
   const normalize = (next: MonthRange) => {
     const a = new Date(next.start.year, next.start.month, 1);
     const b = new Date(next.end.year, next.end.month, 1);
@@ -137,7 +138,7 @@ function MonthRangePicker({
   return (
     <Popover>
       <PopoverTrigger asChild>
-        <Button variant="outline" size="sm" className="gap-2">
+        <Button variant="outline" role="combobox" aria-expanded={open} className="w-[220px] justify-between">
           <CalendarIcon className="h-4 w-4" />
           <span className="hidden md:inline">{label}</span>
           <span className="md:hidden">Select months</span>
