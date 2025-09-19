@@ -55,7 +55,7 @@ const Login = () => {
               </div>
             </div>
 
-            <Button type="submit" size="lg" className="h-12 text-base w-full">
+            <Button type="submit" size="lg" className="h-12 text-base w-full bg-[#113B38]">
               Sign in
             </Button>
           </form>

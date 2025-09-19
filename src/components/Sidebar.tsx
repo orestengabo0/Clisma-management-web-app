@@ -67,15 +67,15 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
           <nav className="px-2">
             <SidebarItem to="/dashboard"           icon={MdDashboard}      label="Dashboard"        isCollapsed={collapsed} />
             <SidebarItem to="/monitoring"          icon={MdAutoGraph}      label="Real Monitoring"  isCollapsed={collapsed} />
-            <SidebarItem to="/dashboard/analytics" icon={SiGoogleanalytics} label="Analytics"        isCollapsed={collapsed} />
-            <SidebarItem to="/dashboard/alerts"    icon={FaBell}           label="Alerts"           isCollapsed={collapsed} />
-            <SidebarItem to="/dashboard/reports"   icon={TbReport}         label="Reports"          isCollapsed={collapsed} />
+            <SidebarItem to="/analytics" icon={SiGoogleanalytics} label="Analytics"        isCollapsed={collapsed} />
+            <SidebarItem to="/alerts"    icon={FaBell}           label="Alerts"           isCollapsed={collapsed} />
+            <SidebarItem to="/reports"   icon={TbReport}         label="Reports"          isCollapsed={collapsed} />
           </nav>
         </div>
 
         {/* Bottom: Settings */}
         <div className="p-4 border-t border-gray-200 dark:border-gray-800">
-          <SidebarItem to="/dashboard/settings" icon={IoSettingsSharp} label="Settings" isCollapsed={collapsed} />
+          <SidebarItem to="/settings" icon={IoSettingsSharp} label="Settings" isCollapsed={collapsed} />
         </div>
       </div>
 
@@ -97,7 +97,7 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
                 </nav>
               </div>
               <div className="px-2 border-t pt-4 mt-4">
-                <SidebarItem to="/dashboard/settings" icon={IoSettingsSharp} label="Settings" isCollapsed={false} size={26} />
+                <SidebarItem to="/settings" icon={IoSettingsSharp} label="Settings" isCollapsed={false} size={26} />
               </div>
             </div>
           </SheetContent>

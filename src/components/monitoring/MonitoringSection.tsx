@@ -48,8 +48,8 @@ const MonitoringSection = () => {
                     <LiveCamera />
                     <LatestDetections />
                 </div>
-                <div className="col-span-full">
-                    <Card className="w-full h-96">
+                <div className="col-span-full h-[30rem]">
+                    <Card className="w-full h-full">
                         <CardHeader>
                             <CardTitle>Emission Map</CardTitle>
                         </CardHeader>
