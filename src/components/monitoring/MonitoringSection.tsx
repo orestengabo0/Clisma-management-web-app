@@ -1,6 +1,6 @@
 import React from "react";
 import { AnalyticsCard } from "../AnalyticsCard";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { ChartConfig } from "../ui/chart";
 import { FaTruckFront } from "react-icons/fa6";
 import { EmissionsPieCard } from "../EmissionPieChart";
