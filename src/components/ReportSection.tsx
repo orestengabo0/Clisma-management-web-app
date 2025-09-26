@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useState } from 'react'
+import React, { useMemo, useRef, useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card'
 import { Button } from './ui/button'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table'
@@ -19,6 +19,12 @@ type ReportItem = {
     inTrash: boolean
     url: string
     mimeType: string
+}
+
+type DateValidationError = {
+    type: 'future' | 'empty' | 'invalid_range' | 'max_range'
+    message: string
+    field?: 'start' | 'end' | 'both'
 }
 
 function formatNow(): string {
@@ -49,6 +55,68 @@ function createSampleCsvBlob(): Blob {
     return new Blob([csv], { type: 'text/csv' })
 }
 
+// Date validation functions
+function validateDateRange(startDate: string, endDate: string): DateValidationError | null {
+    const today = new Date()
+    today.setHours(23, 59, 59, 999) // End of today
+
+    // Check for empty dates
+    if (!startDate || !endDate) {
+        return {
+            type: 'empty',
+            message: 'Please select a valid date range to generate the report.',
+            field: !startDate && !endDate ? 'both' : !startDate ? 'start' : 'end'
+        }
+    }
+
+    const start = new Date(startDate)
+    const end = new Date(endDate)
+
+    // Check for future dates
+    if (start > today || end > today) {
+        return {
+            type: 'future',
+            message: 'Selected dates are invalid. Please choose past or current dates only.',
+            field: start > today ? 'start' : 'end'
+        }
+    }
+
+    // Check for invalid range (start after end)
+    if (start > end) {
+        return {
+            type: 'invalid_range',
+            message: 'Start date cannot be later than end date.',
+            field: 'both'
+        }
+    }
+
+    // Check for maximum range (1 year)
+    const maxRangeMs = 365 * 24 * 60 * 60 * 1000 // 1 year in milliseconds
+    if (end.getTime() - start.getTime() > maxRangeMs) {
+        return {
+            type: 'max_range',
+            message: 'Date range cannot exceed 1 year. Please select a shorter period.',
+            field: 'both'
+        }
+    }
+
+    return null
+}
+
+// Helper function to get date input styling based on validation error
+function getDateInputClassName(hasError: boolean, isDisabled: boolean): string {
+    const baseClasses = "h-9 rounded-md border bg-background px-3 text-sm transition-colors"
+    const errorClasses = "border-destructive focus:border-destructive focus:ring-destructive"
+    const disabledClasses = "opacity-50 cursor-not-allowed"
+    const normalClasses = "border-input focus:border-ring focus:ring-ring"
+
+    if (isDisabled) {
+        return `${baseClasses} ${disabledClasses}`
+    }
+
+    return `${baseClasses} ${hasError ? errorClasses : normalClasses}`
+}
+
 const ReportSection = () => {
     const [reports, setReports] = useState<ReportItem[]>([])
     const [format, setFormat] = useState<ReportType>('PDF')
@@ -65,6 +133,9 @@ const ReportSection = () => {
     const [isGenerating, setIsGenerating] = useState<boolean>(false)
     const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
 
+    // Date validation state
+    const [dateValidationError, setDateValidationError] = useState<DateValidationError | null>(null)
+
     // Delete confirmation state
     const [confirmOpen, setConfirmOpen] = useState<boolean>(false)
     const [pendingDelete, setPendingDelete] = useState<ReportItem | null>(null)
@@ -72,6 +143,14 @@ const ReportSection = () => {
 
     const activeReports = useMemo(() => reports.filter(r => !r.inTrash), [reports])
     const trashedReports = useMemo(() => reports.filter(r => r.inTrash), [reports])
+
+    // Validation computed state
+    const isDateRangeValid = useMemo(() => {
+        const error = validateDateRange(startDate, endDate)
+        return error === null
+    }, [startDate, endDate])
+
+    const canGenerateReport = !isGenerating && isDateRangeValid
 
     function applyPreset(next: 'today' | '7' | '30' | 'custom') {
         setPreset(next)
@@ -93,6 +172,7 @@ const ReportSection = () => {
             setEndDate(toISODate(today))
         } else {
             // custom: keep current values, user edits fields
+
         }
     }
 
@@ -102,8 +182,23 @@ const ReportSection = () => {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [])
 
+    // Validate dates whenever they change
+    useEffect(() => {
+        const error = validateDateRange(startDate, endDate)
+        setDateValidationError(error)
+    }, [startDate, endDate])
+
     async function generateReport() {
         setFeedback(null)
+
+        // Validate dates before generation
+        const validationError = validateDateRange(startDate, endDate)
+        if (validationError) {
+            setDateValidationError(validationError)
+            setFeedback({ type: 'error', message: validationError.message })
+            return
+        }
+
         setIsGenerating(true)
         try {
             // Simulate server processing time
@@ -158,11 +253,6 @@ const ReportSection = () => {
 
     function restoreFromTrash(item: ReportItem) {
         setReports(prev => prev.map(r => (r.id === item.id ? { ...r, inTrash: false } : r)))
-    }
-
-    function deletePermanently(item: ReportItem) {
-        URL.revokeObjectURL(item.url)
-        setReports(prev => prev.filter(r => r.id !== item.id))
     }
 
     function requestPermanentDelete(item: ReportItem) {
@@ -233,20 +323,44 @@ const ReportSection = () => {
                             </div>
 
                             <div className="flex items-end gap-3">
-                                <div>
+                                <div className="flex-1">
                                     <p className="text-sm font-medium mb-1">Start date</p>
-                                    <input type="date" className="h-9 rounded-md border bg-background px-3 text-sm" value={startDate} onChange={(e) => setStartDate(e.target.value)} disabled={isGenerating || preset !== 'custom'} />
+                                    <input
+                                        type="date"
+                                        className={getDateInputClassName(
+                                            dateValidationError?.field === 'start' || dateValidationError?.field === 'both',
+                                            isGenerating || preset !== 'custom'
+                                        )}
+                                        value={startDate}
+                                        onChange={(e) => setStartDate(e.target.value)}
+                                        disabled={isGenerating || preset !== 'custom'}
+                                    />
+                                    {dateValidationError?.field === 'start' && (
+                                        <p className="text-xs text-destructive mt-1">{dateValidationError.message}</p>
+                                    )}
                                 </div>
-                                <div>
+                                <div className="flex-1">
                                     <p className="text-sm font-medium mb-1">End date</p>
-                                    <input type="date" className="h-9 rounded-md border bg-background px-3 text-sm" value={endDate} onChange={(e) => setEndDate(e.target.value)} disabled={isGenerating || preset !== 'custom'} />
+                                    <input
+                                        type="date"
+                                        className={getDateInputClassName(
+                                            dateValidationError?.field === 'end' || dateValidationError?.field === 'both',
+                                            isGenerating || preset !== 'custom'
+                                        )}
+                                        value={endDate}
+                                        onChange={(e) => setEndDate(e.target.value)}
+                                        disabled={isGenerating || preset !== 'custom'}
+                                    />
+                                    {dateValidationError?.field === 'end' && (
+                                        <p className="text-xs text-destructive mt-1">{dateValidationError.message}</p>
+                                    )}
                                 </div>
                             </div>
 
                             <div className="flex-1" />
 
                             <div className="flex items-end">
-                                <Button onClick={generateReport} disabled={isGenerating || !startDate || !endDate}>
+                                <Button onClick={generateReport} disabled={!canGenerateReport}>
                                     {isGenerating ? (
                                         <>
                                             <span className="mr-2 inline-block h-4 w-4 animate-spin rounded-full border-2 border-current border-r-transparent" />
@@ -264,6 +378,14 @@ const ReportSection = () => {
                         {feedback && (
                             <div className={feedback.type === 'success' ? 'text-emerald-600 text-sm' : 'text-destructive text-sm'}>
                                 {feedback.message}
+                            </div>
+                        )}
+
+                        {/* General validation error for both fields or range issues */}
+                        {dateValidationError && (dateValidationError.field === 'both' || dateValidationError.type === 'empty') && (
+                            <div className="text-destructive text-sm flex items-center gap-2">
+                                <AlertTriangle className="h-4 w-4" />
+                                {dateValidationError.message}
                             </div>
                         )}
 

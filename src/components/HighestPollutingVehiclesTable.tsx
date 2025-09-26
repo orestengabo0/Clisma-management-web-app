@@ -6,6 +6,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Button } from "./ui/button";
+import { Link } from "react-router-dom";
 
 type Row = {
   plate: string;
@@ -56,6 +58,7 @@ export default function HighestPollutingVehiclesTable({
               <TableHead className="pr-6 py-3 text-right font-semibold">
                 Rate
               </TableHead>
+              <TableHead className="pr-6 py-3 text-right font-semibold">Action</TableHead>
             </TableRow>
           </TableHeader>
 
@@ -71,6 +74,14 @@ export default function HighestPollutingVehiclesTable({
                 </TableCell>
                 <TableCell className="pr-6 py-4 text-right">
                   {formatRate(r.rate)}
+                </TableCell>
+                <TableCell className="pl-6 pr-6 text-right">
+                  <Link
+                    to={`/vehicle/${r.plate}/details`}  // Note: Fixed route structure
+                    className="text-sm font-medium underline-offset-4 hover:underline"
+                  >
+                    View details
+                  </Link>
                 </TableCell>
               </TableRow>
             ))}
