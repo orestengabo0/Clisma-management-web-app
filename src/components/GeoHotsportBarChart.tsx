@@ -14,37 +14,149 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
+import { useEffect, useState } from "react";
+import { useAuthStore } from "@/lib/authStore";
+import { getEmissionAveragesByVehicleType } from "@/lib/api";
+import { AlertCircle, Loader2 } from "lucide-react";
 
 type Props = {
   className?: string; // height/width control (defaults to h-[24rem])
 };
 
-const data = [
-  { type: "Car",   PM: 20, COx: 95, SOx: 52, NO: 95 },
-  { type: "Truck", PM: 90, COx: 25, SOx: 75, NO: 85 },
-  { type: "Moto",  PM: 95, COx: 50, SOx: 70, NO: 95 },
-  { type: "Bus",   PM: 100, COx: 95, SOx: 30, NO: 25 },
-];
+type ChartData = {
+  type: string;
+  CO2: number;
+  NOx: number;
+  PM10: number;
+  CO: number;
+  PM25: number;
+};
 
 const chartConfig = {
-  PM:  { label: "PM",  color: "#6366F1" }, // indigo-500
-  COx: { label: "COx", color: "#FB7185" }, // rose-400
-  SOx: { label: "SOx", color: "#22D3EE" }, // cyan-400
-  NO:  { label: "NO",  color: "#F59E0B" }, // amber-500
+  CO2: { label: "CO₂", color: "#6366F1" }, // indigo-500
+  NOx: { label: "NOx", color: "#FB7185" }, // rose-400
+  PM10: { label: "PM10", color: "#22D3EE" }, // cyan-400
+  CO: { label: "CO", color: "#F59E0B" }, // amber-500
+  PM25: { label: "PM2.5", color: "#10B981" }, // emerald-500
 } satisfies ChartConfig;
 
 export default function GeoHotspotBarChart({ className = "h-[24rem]" }: Props) {
+  const token = useAuthStore((s) => s.token);
+  const [chartData, setChartData] = useState<ChartData[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!token) return;
+
+    const vehicleTypes = ['CAR', 'TRUCK', 'BUS', 'MOTORCYCLE'];
+    let isCancelled = false;
+
+    (async () => {
+      setLoading(true);
+      setError(null);
+
+      try {
+        const promises = vehicleTypes.map(async (type) => {
+          try {
+            const data = await getEmissionAveragesByVehicleType(type);
+            return {
+              type: type.charAt(0) + type.slice(1).toLowerCase(), // Capitalize first letter
+              CO2: data.co2Level,
+              NOx: data.noxLevel,
+              PM10: data.pm10Level,
+              CO: data.coLevel,
+              PM25: data.pm25Level,
+            };
+          } catch (error) {
+            console.warn(`Failed to fetch data for ${type}:`, error);
+            return {
+              type: type.charAt(0) + type.slice(1).toLowerCase(),
+              CO2: 0,
+              NOx: 0,
+              PM10: 0,
+              CO: 0,
+              PM25: 0,
+            };
+          }
+        });
+
+        const results = await Promise.all(promises);
+
+        if (!isCancelled) {
+          setChartData(results);
+        }
+      } catch (error) {
+        if (!isCancelled) {
+          setError('Failed to load vehicle emission data');
+        }
+      } finally {
+        if (!isCancelled) {
+          setLoading(false);
+        }
+      }
+    })();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [token]);
+
+  // Calculate max value for Y-axis domain
+  const maxValue = Math.max(
+    ...chartData.flatMap(d => [d.CO2, d.NOx, d.PM10, d.CO, d.PM25])
+  );
+  const yAxisMax = maxValue > 0 ? Math.ceil(maxValue * 1.1) : 100;
+
+  if (loading) {
+    return (
+      <Card className="rounded-2xl">
+        <CardHeader className="pb-2">
+          <CardTitle>Vehicle Emission Analysis</CardTitle>
+        </CardHeader>
+        <CardContent className="p-4 pt-0">
+          <div className="flex items-center justify-center h-64">
+            <div className="flex items-center gap-2 text-muted-foreground">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              <span>Loading emission data...</span>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (error) {
+    return (
+      <Card className="rounded-2xl">
+        <CardHeader className="pb-2">
+          <CardTitle>Vehicle Emission Analysis</CardTitle>
+        </CardHeader>
+        <CardContent className="p-4 pt-0">
+          <div className="flex items-center justify-center h-64">
+            <div className="text-center text-red-500">
+              <AlertCircle className="h-8 w-8 mx-auto mb-2" />
+              <p className="font-medium">Failed to load data</p>
+              <p className="text-sm text-muted-foreground">{error}</p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
     <Card className="rounded-2xl">
       <CardHeader className="pb-2">
-        <CardTitle>Geographic HotSpot & Unit Activity</CardTitle>
+        <CardTitle>Vehicle Emission Analysis</CardTitle>
+        <p className="text-sm text-muted-foreground">Average emissions by vehicle type</p>
       </CardHeader>
 
       <CardContent className="p-4 pt-0">
         <ChartContainer config={chartConfig} className={`w-full !aspect-auto ${className}`}>
           <ResponsiveContainer width="100%" height="100%">
             <BarChart
-              data={data}
+              data={chartData}
               margin={{ left: 16, right: 16, top: 8, bottom: 8 }}
               barCategoryGap={24}
             >
@@ -56,17 +168,18 @@ export default function GeoHotspotBarChart({ className = "h-[24rem]" }: Props) {
                 tickMargin={8}
               />
               <YAxis
-                domain={[0, 100]}
+                domain={[0, yAxisMax]}
                 tickLine={false}
                 axisLine={false}
                 tickMargin={8}
               />
               <ChartTooltip content={<ChartTooltipContent />} />
 
-              <Bar dataKey="PM"  fill={chartConfig.PM.color}  radius={[6, 6, 0, 0]} />
-              <Bar dataKey="COx" fill={chartConfig.COx.color} radius={[6, 6, 0, 0]} />
-              <Bar dataKey="SOx" fill={chartConfig.SOx.color} radius={[6, 6, 0, 0]} />
-              <Bar dataKey="NO"  fill={chartConfig.NO.color}  radius={[6, 6, 0, 0]} />
+              <Bar dataKey="CO2" fill={chartConfig.CO2.color} radius={[6, 6, 0, 0]} />
+              <Bar dataKey="NOx" fill={chartConfig.NOx.color} radius={[6, 6, 0, 0]} />
+              <Bar dataKey="PM10" fill={chartConfig.PM10.color} radius={[6, 6, 0, 0]} />
+              <Bar dataKey="CO" fill={chartConfig.CO.color} radius={[6, 6, 0, 0]} />
+              <Bar dataKey="PM25" fill={chartConfig.PM25.color} radius={[6, 6, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </ChartContainer>

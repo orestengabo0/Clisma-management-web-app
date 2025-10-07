@@ -171,6 +171,26 @@ export async function getEmissionAverages(): Promise<EmissionAverages> {
   return obj as EmissionAverages;
 }
 
+export async function getEmissionAveragesByVehicleType(vehicleType: string): Promise<EmissionAverages> {
+  const data = await authorizedGet(`/api/emissionRecords/averages/vehicleType/${vehicleType}`);
+  // Basic validation to ensure expected numeric properties exist
+  const obj = data as Partial<EmissionAverages> | undefined;
+  if (!obj) throw new Error("No data returned");
+  const required: (keyof EmissionAverages)[] = [
+    "coLevel",
+    "noxLevel",
+    "co2Level",
+    "pm10Level",
+    "pm25Level",
+  ];
+  for (const k of required) {
+    if (typeof obj[k] !== "number") {
+      throw new Error(`Invalid averages response: missing ${k}`);
+    }
+  }
+  return obj as EmissionAverages;
+}
+
 export type HotspotLocation = {
   id: number;
   name: string;

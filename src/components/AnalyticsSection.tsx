@@ -8,7 +8,6 @@ import TopEmissionBarchart, { ChartDataPoint } from './TopEmissionBarchart';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { StatsCard } from './StatsCard';
 import { AlertCircle, BrainCircuit, Car, Factory, LineChart, Rocket } from 'lucide-react';
-import GasesStatsCard from './GasesStatsCard';
 import GasesStatCard from './GasesStatsCard';
 import HotspotsHeatMap from './HotspotsHeatMap';
 import GeoHotspotBarChart from './GeoHotsportBarChart';
