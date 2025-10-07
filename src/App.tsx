@@ -7,18 +7,19 @@ import AnalyticsPage from './pages/AnalyticsPage';
 import AlertsPage from './pages/AlertsPage';
 import ReportsPage from './pages/ReportsPage';
 import AccountCenterPage from './pages/AccountCenterPage';
+import ProtectedRoute from './components/ProtectedRoute';
 
 function App() {
   return (
     <Routes>
       {/* Main dashboard route */}
       <Route path="/" element={<Login />} />
-      <Route path="/dashboard" element={<DashboardPage />} />
-      <Route path='/monitoring' element={<MonitoringPage />} />
-      <Route path='/analytics' element={<AnalyticsPage />} />
-      <Route path="/alerts" element={<AlertsPage />} />
-      <Route path='/reports' element={<ReportsPage />} />
-      <Route path='/account' element={<AccountCenterPage />} />
+      <Route path="/dashboard" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
+      <Route path='/monitoring' element={<ProtectedRoute><MonitoringPage /></ProtectedRoute>} />
+      <Route path='/analytics' element={<ProtectedRoute><AnalyticsPage /></ProtectedRoute>} />
+      <Route path="/alerts" element={<ProtectedRoute><AlertsPage /></ProtectedRoute>} />
+      <Route path='/reports' element={<ProtectedRoute><ReportsPage /></ProtectedRoute>} />
+      <Route path='/account' element={<ProtectedRoute><AccountCenterPage /></ProtectedRoute>} />
     </Routes>
   );
 }

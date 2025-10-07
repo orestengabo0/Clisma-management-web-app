@@ -8,60 +8,107 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-
-type Row = { location: string; percentage: string };
+import { Button } from "@/components/ui/button";
+import { Eye } from "lucide-react";
+import { Hotspot } from "@/lib/api";
+import { useState } from "react";
+import AreaDetailsModal from "./AreaDetailsModal";
 
 interface TopPollutedAreasTableProps {
-  rows?: Row[];
+  hotspots?: Hotspot[];
   title?: string;
   className?: string;
 }
 
-const DEFAULT_ROWS: Row[] = [
-  { location: "Shyorongi",  percentage: "75%" },
-  { location: "Nyabugogo",  percentage: "61%" },
-  { location: "Kinamba",    percentage: "11%" },
-  { location: "DownTown",   percentage: "0.9%" },
-  { location: "Rompuwe",    percentage: "0.5%" },
-];
-
 export default function TopPollutedAreasTable({
-  rows = DEFAULT_ROWS,
+  hotspots = [],
   title = "Top Polluted Areas",
   className,
 }: TopPollutedAreasTableProps) {
+  const [selectedHotspot, setSelectedHotspot] = useState<Hotspot | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
+  const handleViewDetails = (hotspot: Hotspot) => {
+    setSelectedHotspot(hotspot);
+    setIsModalOpen(true);
+  };
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+    setSelectedHotspot(null);
+  };
+
   return (
-    <Card className={`rounded-2xl p-3 ${className ?? ""}`}>
-      <CardHeader className="pb-3 border-b">
-        <CardTitle className="text-lg">{title}</CardTitle>
-      </CardHeader>
+    <>
+      <Card className={`rounded-2xl p-3 ${className ?? ""}`}>
+        <CardHeader className="pb-3 border-b">
+          <CardTitle className="text-lg">{title}</CardTitle>
+        </CardHeader>
 
-      <CardContent className="p-0">
-        <Table>
-          <TableHeader>
-            <TableRow className="border-b">
-              <TableHead className="w-[70%] text-foreground font-semibold">
-                Location
-              </TableHead>
-              <TableHead className="text-right text-foreground font-semibold">
-                Percentage
-              </TableHead>
-            </TableRow>
-          </TableHeader>
-
-          <TableBody>
-            {rows.map((r, i) => (
-              <TableRow
-                key={r.location}
-                className={i !== rows.length - 1 ? "border-b" : ""}
-              >
-                <TableCell className="py-4">{r.location}</TableCell>
-                <TableCell className="py-4 text-right">{r.percentage}</TableCell>
+        <CardContent className="p-0">
+          <Table>
+            <TableHeader>
+              <TableRow className="border-b">
+                <TableHead className="w-[50%] text-foreground font-semibold">
+                  Location
+                </TableHead>
+                <TableHead className="text-center text-foreground font-semibold">
+                  Pollution Level
+                </TableHead>
+                <TableHead className="text-center text-foreground font-semibold">
+                  Action
+                </TableHead>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </CardContent>
-    </Card>
+            </TableHeader>
+
+            <TableBody>
+              {hotspots.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={3} className="py-8 text-center text-muted-foreground">
+                    No data available
+                  </TableCell>
+                </TableRow>
+              ) : (
+                hotspots.map((hotspot, i) => (
+                  <TableRow
+                    key={hotspot.id}
+                    className={i !== hotspots.length - 1 ? "border-b" : ""}
+                  >
+                    <TableCell className="py-4">
+                      <div>
+                        <div className="font-medium">{hotspot.location.name}</div>
+                        <div className="text-sm text-muted-foreground">
+                          {hotspot.location.description}
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell className="py-4 text-center">
+                      <span className="font-medium">{hotspot.pollutionLevel}</span>
+                    </TableCell>
+                    <TableCell className="py-4 text-center">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleViewDetails(hotspot)}
+                        className="flex items-center gap-1"
+                      >
+                        <Eye className="h-4 w-4" />
+                        View Details
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+
+      <AreaDetailsModal
+        hotspot={selectedHotspot}
+        isOpen={isModalOpen}
+        onClose={handleCloseModal}
+      />
+    </>
   );
 }

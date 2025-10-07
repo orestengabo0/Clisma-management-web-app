@@ -10,7 +10,7 @@ import { useNavigate } from 'react-router-dom'
 
 const Login = () => {
   const navigate = useNavigate()
-  const { setToken, setAuthenticating, setErrorMessage, isAuthenticating, errorMessage, loadFromStorage, token } = useAuthStore()
+  const { setTokens, setAuthenticating, setErrorMessage, isAuthenticating, errorMessage, loadFromStorage, token } = useAuthStore()
 
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
@@ -32,7 +32,9 @@ const Login = () => {
     setAuthenticating(true)
     try {
       const result = await loginRequest({ username, password })
-      setToken(result.token, remember)
+      const access = result.token
+      const refresh = result.refreshToken ?? null
+      setTokens(access, refresh, remember)
       navigate('/dashboard', { replace: true })
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Login failed'

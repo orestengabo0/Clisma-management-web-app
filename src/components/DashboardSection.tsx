@@ -1,16 +1,45 @@
 // src/components/AnalyticsSection.tsx (DashboardSection)
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { AnalyticsCard } from './AnalyticsCard';
-import { FaTruckFront, FaCar } from 'react-icons/fa6';
+import { FaCar } from 'react-icons/fa6';
 import { IoWarning, IoCarSportOutline } from "react-icons/io5";
 import { SiPodcastindex } from "react-icons/si";
 import DailyEmissionChart from './DailyEmissionChart';
 import { Button } from './ui/button';
+import DeviceClusterMap from './DeviceClusterMap';
 import { HiOutlineCpuChip } from "react-icons/hi2";
 import MonitoringTabs from './MonitoringTabs';
+import { useEffect, useState } from 'react';
+import { useAuthStore } from '@/lib/authStore';
+import { getHotspotsCount, getVehicleDetectionsCount } from '@/lib/api';
 
 export function DashboardSection() {
   const iconSize = 30;
+  const token = useAuthStore((s) => s.token);
+  const [vehicleCount, setVehicleCount] = useState<number | null>(null);
+  const [hotspotCount, setHotspotCount] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (!token) return;
+    let isCancelled = false;
+    (async () => {
+      try {
+        const [vehicles, hotspots] = await Promise.all([
+          getVehicleDetectionsCount(),
+          getHotspotsCount(),
+        ]);
+        if (!isCancelled) {
+          setVehicleCount(vehicles);
+          setHotspotCount(hotspots);
+        }
+      } catch {
+        // ignore errors for now; could add UI toast/logging later
+      }
+    })();
+    return () => {
+      isCancelled = true;
+    };
+  }, [token]);
 
   return (
     <div className="p-6 space-y-6">
@@ -29,10 +58,10 @@ export function DashboardSection() {
         </Card>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 md:w-1/2">
-          <AnalyticsCard icon={<FaCar size={iconSize} />} title="Vehicles Detected" value="4,507" description="+400 from last month" />
+          <AnalyticsCard icon={<FaCar size={iconSize} />} title="Vehicles Detected" value={vehicleCount !== null ? vehicleCount.toLocaleString() : '—'} description="+400 from last month" />
           <AnalyticsCard icon={<IoWarning size={iconSize} color='#db0707ff' />} title="Violations Detected" value="+2,350" description="+180 from last month" />
           <AnalyticsCard icon={<IoCarSportOutline size={iconSize} />} title="Avg Emission Rate" value="30%" description="Rate" />
-          <AnalyticsCard icon={<SiPodcastindex size={iconSize} />} title="Active Hot-Spots" value="47" description="Stations" />
+          <AnalyticsCard icon={<SiPodcastindex size={iconSize} />} title="Active Hot-Spots" value={hotspotCount !== null ? hotspotCount.toLocaleString() : '—'} description="Stations" />
         </div>
       </div>
 
@@ -44,8 +73,8 @@ export function DashboardSection() {
             <CardTitle>Device Location</CardTitle>
           </CardHeader>
           <CardContent className="flex-1">
-            <div className="flex items-center justify-center h-full bg-gray-100 rounded-lg text-gray-400">
-              [Map Placeholder]
+            <div className="h-full">
+              <DeviceClusterMap />
             </div>
           </CardContent>
         </Card>

@@ -8,31 +8,32 @@ import {
   ChartTooltipContent,
 } from "./ui/chart";
 import { Bar, BarChart, XAxis, YAxis } from "recharts";
+import { Hotspot } from "@/lib/api";
 
-const chartData = [
-  { location: "Mukamira", emission: 30 },
-  { location: "Kigali", emission: 50 },
-  { location: "Butare", emission: 61 },
-  { location: "Gisenyi", emission: 40 },
-  { location: "Ruhengeri", emission: 54 },
-  { location: "Nyagatare", emission: 50 },
-];
+export type ChartDataPoint = {
+  location: string;
+  emission: number;
+};
 
 const chartConfig = {
-  emission: { label: "Emission", color: "#E8A370" },
+  emission: { label: "Pollution Level", color: "#E8A370" },
 } satisfies ChartConfig;
 
-const TopEmissionBarchart = () => {
+interface TopEmissionBarchartProps {
+  data?: ChartDataPoint[];
+}
+
+const TopEmissionBarchart = ({ data = [] }: TopEmissionBarchartProps) => {
   return (
     <Card className="h-[28rem] flex flex-col p-4 pl-6">
       <CardHeader className="pb-2">
-        <CardTitle>Top Emission Trends</CardTitle>
+        <CardTitle>Top Polluted Areas</CardTitle>
       </CardHeader>
       <CardContent className="flex-1 p-0">
         <ChartContainer config={chartConfig} className="h-full w-full">
           <BarChart
             accessibilityLayer
-            data={chartData}
+            data={data}
             layout="vertical"
             margin={{ left: 12, right: 16, top: 8, bottom: 8 }}
           >

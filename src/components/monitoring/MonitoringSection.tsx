@@ -1,13 +1,54 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { AnalyticsCard } from "../AnalyticsCard";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { ChartConfig } from "../ui/chart";
-import { FaTruckFront } from "react-icons/fa6";
-import { EmissionsPieCard } from "../EmissionPieChart";
+import { FaCar, FaTruckFront } from "react-icons/fa6";
+import { EmissionsPieCard, type EmissionSlice } from "../EmissionPieChart";
 import LiveCamera from "../LiveCamera";
 import LatestDetections from "../LatestDetections";
+import { useAuthStore } from "@/lib/authStore";
+import { getEmissionAverages, getHotspotsCount, getVehicleDetectionsCount } from '@/lib/api';
+import { IoCarSportOutline, IoWarning } from "react-icons/io5";
+import { SiPodcastindex } from "react-icons/si";
+import DeviceClusterMap from "../DeviceClusterMap";
 
 const MonitoringSection = () => {
+    const token = useAuthStore((s) => s.token);
+    const [vehicleCount, setVehicleCount] = useState<number | null>(null);
+    const [hotspotCount, setHotspotCount] = useState<number | null>(null);
+    const [emissionSlices, setEmissionSlices] = useState<EmissionSlice[] | null>(null);
+
+    useEffect(() => {
+        if (!token) return;
+        let isCancelled = false;
+        (async () => {
+            try {
+                const [vehicles, hotspots, averages] = await Promise.all([
+                    getVehicleDetectionsCount(),
+                    getHotspotsCount(),
+                    getEmissionAverages(),
+                ]);
+                if (!isCancelled) {
+                    setVehicleCount(vehicles);
+                    setHotspotCount(hotspots);
+                    const slices: EmissionSlice[] = [
+                        { gas: "CO2", level: averages.co2Level, fill: "#CD273F" },
+                        { gas: "NOx", level: averages.noxLevel, fill: "#8979FF" },
+                        { gas: "PM10", level: averages.pm10Level, fill: "#D89B76" },
+                        { gas: "CO", level: averages.coLevel, fill: "#3CC3DF" },
+                        { gas: "PM2.5", level: averages.pm25Level, fill: "#A3A3A3" },
+                    ];
+                    setEmissionSlices(slices);
+                }
+            } catch {
+                // ignore errors for now; could add UI toast/logging later
+            }
+        })();
+        return () => {
+            isCancelled = true;
+        };
+    }, [token]);
+
     const iconSize = 30;
     const chartData = [
         { gas: "CO2", level: 400, fill: "#CD273F" },
@@ -37,13 +78,19 @@ const MonitoringSection = () => {
             <div className="grid gap-6 lg:grid-cols-3 items-start">
                 {/* Left: 2x2 analytics cards (spans 2/3) */}
                 <div className="grid grid-cols-2 gap-6 lg:col-span-2 min-w-0">
-                    <AnalyticsCard icon={<FaTruckFront size={iconSize} />} title="Vehicles Detected" value="4,507" description="+400 from last month" />
-                    <AnalyticsCard icon={<FaTruckFront size={iconSize}/>} title="Violations Detected" value="+2,350" description="+180 from last month" />
-                    <AnalyticsCard icon={<FaTruckFront size={iconSize} />} title="Avg Emission Rate" value="30%" description="Rate" />
-                    <AnalyticsCard icon={<FaTruckFront size={iconSize} />} title="Active Hot-Spots" value="47" description="Stations" />
+                    <AnalyticsCard icon={<FaCar size={iconSize} />} title="Vehicles Detected" value={vehicleCount !== null ? vehicleCount.toLocaleString() : '—'} description="+400 from last month" />
+                    <AnalyticsCard icon={<IoWarning size={iconSize} />} title="Violations Detected" value="+2,350" description="+180 from last month" />
+                    <AnalyticsCard icon={<IoCarSportOutline size={iconSize} />} title="Avg Emission Rate" value="30%" description="Rate" />
+                    <AnalyticsCard icon={<SiPodcastindex size={iconSize} />} title="Active Hot-Spots" value={hotspotCount !== null ? hotspotCount.toLocaleString() : '—'} description="Stations" />
                 </div>
 
-                <EmissionsPieCard />
+                <EmissionsPieCard data={emissionSlices ?? [
+                    { gas: "CO2", level: 0, fill: "#CD273F" },
+                    { gas: "NOx", level: 0, fill: "#8979FF" },
+                    { gas: "PM10", level: 0, fill: "#D89B76" },
+                    { gas: "CO", level: 0, fill: "#3CC3DF" },
+                    { gas: "PM2.5", level: 0, fill: "#A3A3A3" },
+                ]} />
                 <div className="grid gap-6 sm:grid-cols-1 lg:grid-cols-2 lg:col-span-3">
                     <LiveCamera />
                     <LatestDetections />
@@ -55,7 +102,7 @@ const MonitoringSection = () => {
                         </CardHeader>
                         <CardContent>
                             <div className="flex items-center justify-center h-full bg-gray-100 rounded-lg text-gray-400">
-                                [Placeholder for Map]
+                                <DeviceClusterMap />
                             </div>
                         </CardContent>
                     </Card>

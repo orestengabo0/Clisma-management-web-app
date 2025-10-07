@@ -1,10 +1,10 @@
 // src/components/AnalyticsSection.tsx
-import React, { useMemo, useState } from 'react'
+import React, { useMemo, useState, useEffect } from 'react'
 import { MonthRange, MonthRangePicker, MONTHS } from './EmissionPieChart'
 import { LocationPicker } from './LocationPicker';
 import VehiclePicker from './VehiclePicker';
 import DailyEmissionChart from './DailyEmissionChart';
-import TopEmissionBarchart from './TopEmissionBarchart';
+import TopEmissionBarchart, { ChartDataPoint } from './TopEmissionBarchart';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { StatsCard } from './StatsCard';
 import { AlertCircle, BrainCircuit, Car, Factory, LineChart, Rocket } from 'lucide-react';
@@ -15,6 +15,8 @@ import GeoHotspotBarChart from './GeoHotsportBarChart';
 import TopPollutedAreasTable from './TopPollutedAreasTable';
 import HighestPollutingVehiclesTable from './HighestPollutingVehiclesTable';
 import { AdvancedAnalyticsCard } from './AdvancedAnalyticsCardProps';
+import { useAuthStore } from '@/lib/authStore';
+import { getEmissionAverages, getHotspots, Hotspot } from '@/lib/api';
 
 const AnalyticsSection = () => {
   const [location, setLocation] = useState<string | undefined>(undefined);
@@ -27,10 +29,54 @@ const AnalyticsSection = () => {
   const [period2, setPeriod2] = useState("last_year");
   const [period3, setPeriod3] = useState("last_year");
 
+  const token = useAuthStore((s) => s.token);
+  const [hotspots, setHotspots] = useState<Hotspot[]>([]);
+  const [chartData, setChartData] = useState<ChartDataPoint[]>([]);
+  const [co2, setCo2] = useState<number>(0);
+  const [nox, setNox] = useState<number>(0);
+  const [pm10, setPm10] = useState<number>(0);
+  const [co, setCo] = useState<number>(0);
+  const [pm25, setPm25] = useState<number>(0);
+
   const rangeLabel = useMemo(
     () => `${MONTHS[range.start.month]} ${range.start.year} – ${MONTHS[range.end.month]} ${range.end.year}`,
     [range]
   );
+
+  // Fetch hotspots data
+  useEffect(() => {
+    if (!token) return;
+    let isCancelled = false;
+    (async () => {
+      try {
+        const [avg, response] = await Promise.all([
+          getEmissionAverages(),
+          getHotspots(0, 10, "pollutionLevel,DESC"),
+        ]);
+        if (!isCancelled) {
+          setCo2(avg.co2Level);
+          setNox(avg.noxLevel);
+          setPm10(avg.pm10Level);
+          setCo(avg.coLevel);
+          setPm25(avg.pm25Level);
+        }
+        if (!isCancelled) {
+          setHotspots(response.content);
+          // Convert hotspots to chart data
+          const chartDataPoints: ChartDataPoint[] = response.content.map(hotspot => ({
+            location: hotspot.location.name,
+            emission: hotspot.pollutionLevel
+          }));
+          setChartData(chartDataPoints);
+        }
+      } catch {
+        // ignore errors for now; could add UI toast/logging later
+      }
+    })();
+    return () => {
+      isCancelled = true;
+    };
+  }, [token]);
 
   const desc =
     "The current inspection trend indicates that emissions will reduce by 5% in the next 3 month if compliance continues";
@@ -70,7 +116,7 @@ const AnalyticsSection = () => {
         </Card>
 
         {/* Right: Top Emission Bar Chart */}
-        <TopEmissionBarchart />
+        <TopEmissionBarchart data={chartData} />
       </div>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <StatsCard
@@ -102,15 +148,15 @@ const AnalyticsSection = () => {
         />
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-4 gap-6">
-        <GasesStatCard gas="CO" value={986} unit="gm" variant="emerald" />
-        <GasesStatCard gas="NO₂" value={1320} unit="gm" variant="rose" />
-        <GasesStatCard gas="PM" value={30} unit="µg/m³" variant="amber" />
-        <GasesStatCard gas="PM" value={30} unit="µg/m³" variant="amber" />
+        <GasesStatCard gas="CO2" value={co2} unit="ppm" variant="emerald" />
+        <GasesStatCard gas="NOx" value={nox} unit="ppm" variant="rose" />
+        <GasesStatCard gas="PM10" value={pm10} unit="µg/m³" variant="amber" />
+        <GasesStatCard gas="CO" value={co} unit="ppm" variant="emerald" />
       </div>
       <div className='grid grid-cols-1 lg:grid-cols-3 gap-6'>
         <HotspotsHeatMap />
         <GeoHotspotBarChart />
-        <TopPollutedAreasTable />
+        <TopPollutedAreasTable hotspots={hotspots} />
       </div>
       <div className='grid grid-cols-1 lg:grid-cols-2 gap-6'>
         <HighestPollutingVehiclesTable />
@@ -121,29 +167,29 @@ const AnalyticsSection = () => {
         </Card>
       </div>
       <section className="space-y-4">
-      <h2 className="text-lg sm:text-xl font-semibold">Advanced Analytics</h2>
+        <h2 className="text-lg sm:text-xl font-semibold">Advanced Analytics</h2>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-        <AdvancedAnalyticsCard
-          icon={<BrainCircuit className="h-6 w-6" />}
-          title="AI Prediction"
-          description={desc}
-          href="#"
-        />
-        <AdvancedAnalyticsCard
-          icon={<LineChart className="h-6 w-6" />}
-          title="AI Prediction"
-          description={desc}
-          href="#"
-        />
-        <AdvancedAnalyticsCard
-          icon={<Rocket className="h-6 w-6" />}
-          title="AI Prediction"
-          description={desc}
-          href="#"
-        />
-      </div>
-    </section>
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+          <AdvancedAnalyticsCard
+            icon={<BrainCircuit className="h-6 w-6" />}
+            title="AI Prediction"
+            description={desc}
+            href="#"
+          />
+          <AdvancedAnalyticsCard
+            icon={<LineChart className="h-6 w-6" />}
+            title="AI Prediction"
+            description={desc}
+            href="#"
+          />
+          <AdvancedAnalyticsCard
+            icon={<Rocket className="h-6 w-6" />}
+            title="AI Prediction"
+            description={desc}
+            href="#"
+          />
+        </div>
+      </section>
     </div>
   );
 };

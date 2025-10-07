@@ -7,13 +7,7 @@ import { ChartConfig, ChartContainer, ChartTooltip, ChartTooltipContent } from "
 import { PieChart, Pie, Cell } from "recharts";
 import { Calendar as CalendarIcon } from "lucide-react";
 
-const chartData = [
-  { gas: "CO2", level: 400, fill: "#CD273F" },
-  { gas: "NO2", level: 300, fill: "#8979FF" },
-  { gas: "SO2", level: 200, fill: "#D89B76" },
-  { gas: "CO", level: 278, fill: "#3CC3DF" },
-  { gas: "PM2.5", level: 189, fill: "#A3A3A3" },
-];
+export type EmissionSlice = { gas: string; level: number; fill: string };
 
 const chartConfig = {
   gas: { label: "Gas" },
@@ -33,7 +27,7 @@ export const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "
 export const currentYear = new Date().getFullYear();
 export const YEARS = Array.from({ length: 6 }, (_, i) => currentYear - 5 + i); // e.g., 2020..current
 
-export function EmissionsPieCard() {
+export function EmissionsPieCard({ data }: { data: EmissionSlice[] }) {
   // Default range: Jan–Jun 2024
   const [range, setRange] = useState<MonthRange>({
     start: { month: 0, year: 2024 },
@@ -47,7 +41,7 @@ export function EmissionsPieCard() {
     [range]
   );
 
-  const total = chartData.reduce((sum, d) => sum + d.level, 0);
+  const total = data.reduce((sum, d) => sum + d.level, 0);
 
   return (
     <Card className="lg:col-span-1">
@@ -67,14 +61,14 @@ export function EmissionsPieCard() {
           <PieChart>
             <ChartTooltip cursor={false} content={<ChartTooltipContent hideLabel />} />
             <Pie
-              data={chartData}
+              data={data}
               dataKey="level"
               nameKey="gas"
               innerRadius={60}
               outerRadius={100}
               strokeWidth={2}
             >
-              {chartData.map((d) => (
+              {data.map((d) => (
                 <Cell key={d.gas} fill={d.fill} />
               ))}
             </Pie>
@@ -83,7 +77,7 @@ export function EmissionsPieCard() {
 
         {/* Always-visible legend */}
         <div className="mt-4 grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
-          {chartData.map((d) => {
+          {data.map((d) => {
             const pct = ((d.level / total) * 100).toFixed(1);
             return (
               <div key={d.gas} className="flex items-center gap-2">
