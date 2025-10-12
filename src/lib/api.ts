@@ -250,3 +250,27 @@ export async function getHotspots(
   return data as HotspotsResponse;
 }
 
+export type HighestPolluter = {
+  pm10Level: number;
+  licensePlate: string;
+  pm25Level: number;
+  noxLevel: number;
+  recordCount: number;
+  co2Level: number;
+  coLevel: number;
+  totalScore: number;
+  vehicleType: string;
+};
+
+export async function getHighestPollutingVehicles(
+  pollutantType: string = "total",
+  limit: number = 10
+): Promise<HighestPolluter[]> {
+  const params = new URLSearchParams({
+    pollutantType: pollutantType,
+    limit: limit.toString(),
+  });
+  const data = await authorizedGet(`/api/emissionRecords/highest-polluters?${params}`);
+  return data as HighestPolluter[];
+}
+

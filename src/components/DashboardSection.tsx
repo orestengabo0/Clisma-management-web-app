@@ -65,44 +65,29 @@ export function DashboardSection() {
         </div>
       </div>
 
-      {/* Bottom Section: Map (left 2/3) + Right column (MonitoringTabs top, AI card bottom) */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Map: spans 2/3 on large screens */}
-        <Card className="lg:col-span-2 h-[32rem] flex flex-col">
-          <CardHeader className="pb-2">
-            <CardTitle>Device Location</CardTitle>
+      {/* Bottom Section: Device Location Map and Live Camera Stream */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+        {/* Left: Device Location Map */}
+        <Card className="h-[36rem] flex flex-col">
+          <CardHeader className="pb-2 flex-shrink-0">
+            <CardTitle className="text-lg">Device Location & Coverage</CardTitle>
           </CardHeader>
-          <CardContent className="flex-1">
-            <div className="h-full">
+          <CardContent className="flex-1 overflow-hidden">
+            <div className="h-full w-full">
               <DeviceClusterMap />
             </div>
           </CardContent>
         </Card>
 
-        {/* Right column: MonitoringTabs (top) + AI predictions card (bottom) */}
-        <div className="lg:col-span-1 flex flex-col h-[32rem] gap-6">
-          {/* Fill available height */}
-          <MonitoringTabs className="flex-1 min-h-0" />
-
-          <Card className="p-2 pb-0 bg-[#113B38]">
-            <div className="flex justify-between items-center h-full">
-              <div>
-                <p className="text-white pl-6 pt-3">WANNA VIEW AI PREDICTIONS</p>
-                <CardContent>
-                  <p className="text-white text-2xl font-bold">
-                    Get More Action Through Our AI Prediction
-                  </p>
-                  <Button className="bg-white text-black mt-3 hover:bg-gray-100">
-                    Go to AI center
-                  </Button>
-                </CardContent>
-              </div>
-              <div>
-                <HiOutlineCpuChip size={100} color="#fff" />
-              </div>
-            </div>
-          </Card>
-        </div>
+        {/* Right: Live Camera Monitoring */}
+        <Card className="h-[36rem] flex flex-col px-3">
+          <CardHeader className="pb-2 flex-shrink-0">
+            <CardTitle className="text-lg">Live Camera Monitoring</CardTitle>
+          </CardHeader>
+          <CardContent className="flex-1 p-1 overflow-hidden">
+            <MonitoringTabs className="h-full" />
+          </CardContent>
+        </Card>
       </div>
     </div>
   );

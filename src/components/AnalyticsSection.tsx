@@ -15,7 +15,7 @@ import TopPollutedAreasTable from './TopPollutedAreasTable';
 import HighestPollutingVehiclesTable from './HighestPollutingVehiclesTable';
 import { AdvancedAnalyticsCard } from './AdvancedAnalyticsCardProps';
 import { useAuthStore } from '@/lib/authStore';
-import { getEmissionAverages, getHotspots, Hotspot } from '@/lib/api';
+import { getEmissionAverages, getHotspots, getHighestPollutingVehicles, Hotspot, HighestPolluter } from '@/lib/api';
 
 const AnalyticsSection = () => {
   const [location, setLocation] = useState<string | undefined>(undefined);
@@ -31,6 +31,7 @@ const AnalyticsSection = () => {
   const token = useAuthStore((s) => s.token);
   const [hotspots, setHotspots] = useState<Hotspot[]>([]);
   const [chartData, setChartData] = useState<ChartDataPoint[]>([]);
+  const [highestPolluters, setHighestPolluters] = useState<HighestPolluter[]>([]);
   const [co2, setCo2] = useState<number>(0);
   const [nox, setNox] = useState<number>(0);
   const [pm10, setPm10] = useState<number>(0);
@@ -48,9 +49,10 @@ const AnalyticsSection = () => {
     let isCancelled = false;
     (async () => {
       try {
-        const [avg, response] = await Promise.all([
+        const [avg, response, polluters] = await Promise.all([
           getEmissionAverages(),
           getHotspots(0, 10, "pollutionLevel,DESC"),
+          getHighestPollutingVehicles("total", 10),
         ]);
         if (!isCancelled) {
           setCo2(avg.co2Level);
@@ -67,6 +69,9 @@ const AnalyticsSection = () => {
             emission: hotspot.pollutionLevel
           }));
           setChartData(chartDataPoints);
+        }
+        if (!isCancelled) {
+          setHighestPolluters(polluters);
         }
       } catch {
         // ignore errors for now; could add UI toast/logging later
@@ -158,7 +163,7 @@ const AnalyticsSection = () => {
         <TopPollutedAreasTable hotspots={hotspots} />
       </div>
       <div className='grid grid-cols-1 lg:grid-cols-2 gap-6'>
-        <HighestPollutingVehiclesTable />
+        <HighestPollutingVehiclesTable data={highestPolluters} />
         <Card className="mt-6 p-4">
           <div className="flex justify-center items-center h-full">
             [Placeholder for AI Prediction Card]

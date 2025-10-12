@@ -11,6 +11,7 @@ import { getEmissionAverages, getHotspotsCount, getVehicleDetectionsCount } from
 import { IoCarSportOutline, IoWarning } from "react-icons/io5";
 import { SiPodcastindex } from "react-icons/si";
 import DeviceClusterMap from "../DeviceClusterMap";
+import CameraStream from "../CameraStream";
 
 const MonitoringSection = () => {
     const token = useAuthStore((s) => s.token);
@@ -92,7 +93,7 @@ const MonitoringSection = () => {
                     { gas: "PM2.5", level: 0, fill: "#A3A3A3" },
                 ]} />
                 <div className="grid gap-6 sm:grid-cols-1 lg:grid-cols-2 lg:col-span-3">
-                    <LiveCamera />
+                    <CameraStream />
                     <LatestDetections />
                 </div>
                 <div className="col-span-full h-[30rem]">
