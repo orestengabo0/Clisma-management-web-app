@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { Button } from "./ui/button";
 import { Card } from "./ui/card";
 import { Maximize2, Minimize2, RotateCcw, Play, Square } from "lucide-react";
@@ -10,14 +10,85 @@ const CameraStream: React.FC = () => {
   const [currentUrl, setCurrentUrl] = useState("");
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [showDebugInfo, setShowDebugInfo] = useState(false);
+  const [streamKey, setStreamKey] = useState(0);
   const streamRef = useRef<HTMLDivElement>(null);
+  const imgRef = useRef<HTMLImageElement>(null);
+  const isCleaningUp = useRef(false);
 
-  const streamUrl = "http://10.12.73.154:8081";
+  const streamUrl = "http://172.16.0.174:8082/video_feed";
 
-  useEffect(() => {
-    testConnection();
+  // Comprehensive cleanup function
+  const cleanupStream = useCallback(() => {
+    if (isCleaningUp.current) return;
+    isCleaningUp.current = true;
+
+    console.log("Cleaning up stream...");
+
+    // Clear image source and remove all event handlers
+    if (imgRef.current) {
+      try {
+        imgRef.current.src = '';
+        imgRef.current.srcset = '';
+        imgRef.current.onload = null;
+        imgRef.current.onerror = null;
+      } catch (e) {
+        console.error("Error during cleanup:", e);
+      }
+    }
+
+    // Reset all state
+    setIsStreaming(false);
+    setCurrentUrl("");
+    setHasError(false);
+    setErrorMessage("");
+
+    isCleaningUp.current = false;
   }, []);
 
+  // Handle page visibility change (switching tabs/windows)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        console.log("Page hidden - stopping stream");
+        cleanupStream();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [cleanupStream]);
+
+  // Handle component unmount and page unload
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      console.log("Page unloading - stopping stream");
+      cleanupStream();
+    };
+
+    const handleUnload = () => {
+      cleanupStream();
+    };
+
+    // Add multiple event listeners to ensure cleanup
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    window.addEventListener('unload', handleUnload);
+    window.addEventListener('pagehide', handleUnload);
+
+    // Component unmount cleanup
+    return () => {
+      console.log("Component unmounting - stopping stream");
+      cleanupStream();
+      
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      window.removeEventListener('unload', handleUnload);
+      window.removeEventListener('pagehide', handleUnload);
+    };
+  }, [cleanupStream]);
+
+  // Fullscreen toggle
   const toggleFullscreen = () => {
     if (!streamRef.current) return;
 
@@ -43,64 +114,100 @@ const CameraStream: React.FC = () => {
     };
   }, []);
 
+  // Test connection
   const testConnection = async () => {
     try {
       setErrorMessage("Testing connection...");
 
-      // Test with a simple fetch
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000);
+
       const response = await fetch(streamUrl, {
         method: 'GET',
-        cache: 'no-cache'
+        cache: 'no-cache',
+        signal: controller.signal
       });
+
+      clearTimeout(timeoutId);
 
       if (response.ok) {
         setHasError(false);
         setErrorMessage("");
-        setIsStreaming(true);
+        return true;
       } else {
         throw new Error(`HTTP ${response.status}`);
       }
     } catch (error) {
       setHasError(true);
-      // Fix the TypeScript error by checking error type
       if (error instanceof Error) {
         setErrorMessage(`Connection failed: ${error.message}`);
       } else {
         setErrorMessage(`Connection failed: Unknown error`);
       }
-      setIsStreaming(false);
       console.error("Connection test failed:", error);
+      return false;
     }
   };
 
-  const handleImageError = (e: React.SyntheticEvent<HTMLImageElement, Event>) => {
+  // Handle image load error with recovery
+  const handleImageError = useCallback((e: React.SyntheticEvent<HTMLImageElement, Event>) => {
+    console.error("Image load error - stream failed");
     setHasError(true);
-    setErrorMessage("Image failed to load - connection timeout");
-    setIsStreaming(false);
-  };
+    setErrorMessage("Stream connection lost");
 
-  const handleImageLoad = () => {
+    // Don't auto-recover, let user manually restart
+    // This prevents infinite retry loops
+  }, []);
+
+  // Handle successful image load
+  const handleImageLoad = useCallback(() => {
+    console.log("Stream loaded successfully");
     setHasError(false);
     setErrorMessage("");
-    console.log("Camera stream loaded successfully");
-  };
+  }, []);
 
-  const startStream = () => {
-    setHasError(false);
-    setErrorMessage("");
-    setCurrentUrl(`${streamUrl}?t=${Date.now()}`);
-    setIsStreaming(true);
-  };
+  // Start stream
+  const startStream = useCallback(() => {
+    console.log("Starting stream...");
+    
+    // Force cleanup first
+    cleanupStream();
+    
+    // Small delay to ensure cleanup completed
+    setTimeout(() => {
+      setHasError(false);
+      setErrorMessage("");
+      const newUrl = `${streamUrl}?t=${Date.now()}`;
+      setCurrentUrl(newUrl);
+      setIsStreaming(true);
+      setStreamKey(prev => prev + 1);
+      console.log("Stream started with URL:", newUrl);
+    }, 100);
+  }, [cleanupStream, streamUrl]);
 
-  const stopStream = () => {
-    setIsStreaming(false);
-  };
+  // Stop stream
+  const stopStream = useCallback(() => {
+    console.log("Stopping stream...");
+    cleanupStream();
+    setStreamKey(prev => prev + 1);
+  }, [cleanupStream]);
+
+  // Refresh stream
+  const refreshStream = useCallback(() => {
+    console.log("Refreshing stream...");
+    cleanupStream();
+    
+    setTimeout(() => {
+      startStream();
+    }, 300);
+  }, [cleanupStream, startStream]);
 
   return (
     <div
       ref={streamRef}
-      className={`w-full h-full flex flex-col relative ${isFullscreen ? 'bg-black' : 'bg-gray-50'
-        }`}
+      className={`w-full h-full flex flex-col relative ${
+        isFullscreen ? 'bg-black' : 'bg-gray-50'
+      }`}
     >
       {/* Control Bar */}
       <div className="absolute top-2 right-2 z-10 flex gap-2">
@@ -126,9 +233,12 @@ const CameraStream: React.FC = () => {
       {showDebugInfo && (
         <div className="absolute top-12 right-2 z-10 bg-black/80 text-white p-3 rounded-lg text-xs max-w-xs">
           <div>Stream URL: {streamUrl}</div>
-          {currentUrl && <div>Current: {currentUrl}</div>}
+          {currentUrl && <div className="truncate">Current: {currentUrl.substring(0, 50)}...</div>}
           <div>Status: {isStreaming ? 'Streaming' : 'Stopped'}</div>
+          <div>Has Error: {hasError ? 'Yes' : 'No'}</div>
           <div>Fullscreen: {isFullscreen ? 'Yes' : 'No'}</div>
+          <div>Stream Key: {streamKey}</div>
+          <div>Page Hidden: {document.hidden ? 'Yes' : 'No'}</div>
         </div>
       )}
 
@@ -144,24 +254,29 @@ const CameraStream: React.FC = () => {
               Troubleshooting:
               <ul className="list-disc list-inside mt-1">
                 <li>Verify Pi is powered on and connected to network</li>
-                <li>Check Motion is running: <code>ps aux | grep motion</code></li>
+                <li>Check server is running: <code>./manage.sh status</code></li>
                 <li>Test direct URL in browser tab</li>
                 <li>Check if devices are on same network</li>
               </ul>
             </div>
             <div className="flex gap-2">
               <Button
-                onClick={testConnection}
+                onClick={async () => {
+                  const connected = await testConnection();
+                  if (connected) {
+                    setTimeout(() => startStream(), 500);
+                  }
+                }}
                 variant="destructive"
                 size="sm"
               >
                 Test Connection
               </Button>
               <Button
-                onClick={startStream}
+                onClick={refreshStream}
                 size="sm"
               >
-                Try Stream Anyway
+                Try Again
               </Button>
             </div>
           </Card>
@@ -172,14 +287,19 @@ const CameraStream: React.FC = () => {
       <div className="flex-1 w-full flex items-center justify-center relative">
         {isStreaming ? (
           <div className="w-full h-full relative">
-            <img
-              src={currentUrl || `${streamUrl}?t=${Date.now()}`}
-              alt="Live Camera Stream"
-              onError={handleImageError}
-              onLoad={handleImageLoad}
-              className={`w-full h-full object-contain ${isFullscreen ? 'rounded-none' : 'rounded-lg'
+            {currentUrl && (
+              <img
+                key={streamKey}
+                ref={imgRef}
+                src={currentUrl}
+                alt="Live Camera Stream"
+                onError={handleImageError}
+                onLoad={handleImageLoad}
+                className={`w-full h-full object-contain ${
+                  isFullscreen ? 'rounded-none' : 'rounded-lg'
                 }`}
-            />
+              />
+            )}
 
             {/* Stream Controls Overlay */}
             {isFullscreen && (
@@ -194,7 +314,7 @@ const CameraStream: React.FC = () => {
                   Stop
                 </Button>
                 <Button
-                  onClick={startStream}
+                  onClick={refreshStream}
                   variant="secondary"
                   size="sm"
                   className="bg-green-600/80 hover:bg-green-700/80"
@@ -236,7 +356,7 @@ const CameraStream: React.FC = () => {
               Stop Stream
             </Button>
             <Button
-              onClick={startStream}
+              onClick={refreshStream}
               variant="outline"
               size="sm"
             >

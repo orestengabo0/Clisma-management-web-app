@@ -51,7 +51,7 @@ export default function GasesStatCard({
       <div className="flex items-center gap-4">
         {/* Chip */}
         <div
-          className={`flex h-14 w-14 items-center justify-center rounded-lg ring-1 ${c.chipBg} ${c.chipRing}`}
+          className={`flex p-5 items-center justify-center rounded-lg ring-1 ${c.chipBg} ${c.chipRing}`}
           aria-label={gas}
         >
           <span className={`text-2xl font-semibold tracking-wide ${c.chipText}`}>

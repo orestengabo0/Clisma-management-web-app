@@ -9,6 +9,7 @@ import {
 } from "./ui/chart";
 import { Bar, BarChart, XAxis, YAxis } from "recharts";
 import { Hotspot } from "@/lib/api";
+import LoadingPlaceholder from "@/components/ui/loading-placeholder";
 
 export type ChartDataPoint = {
   location: string;
@@ -21,34 +22,42 @@ const chartConfig = {
 
 interface TopEmissionBarchartProps {
   data?: ChartDataPoint[];
+  loading?: boolean;
+  error?: string | null;
 }
 
-const TopEmissionBarchart = ({ data = [] }: TopEmissionBarchartProps) => {
+const TopEmissionBarchart = ({ data = [], loading = false, error = null }: TopEmissionBarchartProps) => {
   return (
     <Card className="h-[28rem] flex flex-col p-4 pl-6">
       <CardHeader className="pb-2">
         <CardTitle>Top Polluted Areas</CardTitle>
       </CardHeader>
       <CardContent className="flex-1 p-0">
-        <ChartContainer config={chartConfig} className="h-full w-full">
-          <BarChart
-            accessibilityLayer
-            data={data}
-            layout="vertical"
-            margin={{ left: 12, right: 16, top: 8, bottom: 8 }}
-          >
-            <XAxis type="number" dataKey="emission" hide />
-            <YAxis
-              dataKey="location"
-              type="category"
-              tickLine={false}
-              axisLine={false}
-              tickMargin={8}
-            />
-            <ChartTooltip cursor={false} content={<ChartTooltipContent />} />
-            <Bar dataKey="emission" fill={chartConfig.emission.color} radius={[6, 6, 6, 6]} />
-          </BarChart>
-        </ChartContainer>
+        {loading ? (
+          <LoadingPlaceholder kind="chart" heightClass="h-64" />
+        ) : error ? (
+          <div className="mt-2 text-sm text-red-600">{error}</div>
+        ) : (
+          <ChartContainer config={chartConfig} className="h-full w-full">
+            <BarChart
+              accessibilityLayer
+              data={data}
+              layout="vertical"
+              margin={{ left: 12, right: 16, top: 8, bottom: 8 }}
+            >
+              <XAxis type="number" dataKey="emission" hide />
+              <YAxis
+                dataKey="location"
+                type="category"
+                tickLine={false}
+                axisLine={false}
+                tickMargin={8}
+              />
+              <ChartTooltip cursor={false} content={<ChartTooltipContent />} />
+              <Bar dataKey="emission" fill={chartConfig.emission.color} radius={[6, 6, 6, 6]} />
+            </BarChart>
+          </ChartContainer>
+        )}
       </CardContent>
     </Card>
   );

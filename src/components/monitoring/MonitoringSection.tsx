@@ -1,16 +1,15 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { AnalyticsCard } from "../AnalyticsCard";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { ChartConfig } from "../ui/chart";
-import { FaCar, FaTruckFront } from "react-icons/fa6";
+import { FaCar } from "react-icons/fa6";
 import { EmissionsPieCard, type EmissionSlice } from "../EmissionPieChart";
-import LiveCamera from "../LiveCamera";
 import LatestDetections from "../LatestDetections";
 import { useAuthStore } from "@/lib/authStore";
 import { getEmissionAverages, getHotspotsCount, getVehicleDetectionsCount } from '@/lib/api';
 import { IoCarSportOutline, IoWarning } from "react-icons/io5";
 import { SiPodcastindex } from "react-icons/si";
-import DeviceClusterMap from "../DeviceClusterMap";
+import DeviceHeatMap from "../DeviceHeatMap";
 import CameraStream from "../CameraStream";
 
 const MonitoringSection = () => {
@@ -33,11 +32,11 @@ const MonitoringSection = () => {
                     setVehicleCount(vehicles);
                     setHotspotCount(hotspots);
                     const slices: EmissionSlice[] = [
-                        { gas: "CO2", level: averages.co2Level, fill: "#CD273F" },
-                        { gas: "NOx", level: averages.noxLevel, fill: "#8979FF" },
-                        { gas: "PM10", level: averages.pm10Level, fill: "#D89B76" },
-                        { gas: "CO", level: averages.coLevel, fill: "#3CC3DF" },
-                        { gas: "PM2.5", level: averages.pm25Level, fill: "#A3A3A3" },
+                        { gas: "AQI", level: averages.aqi, fill: "#CD273F" },
+                        { gas: "MQ135", level: averages.mq135, fill: "#8979FF" },
+                        { gas: "MQ7", level: averages.mq7, fill: "#D89B76" },
+                        { gas: "CO (ppm)", level: averages.coPpm, fill: "#3CC3DF" },
+                        { gas: "MQ135R", level: averages.mq135R, fill: "#A3A3A3" },
                     ];
                     setEmissionSlices(slices);
                 }
@@ -97,13 +96,13 @@ const MonitoringSection = () => {
                     <LatestDetections />
                 </div>
                 <div className="col-span-full h-[30rem]">
-                    <Card className="w-full h-full">
-                        <CardHeader>
-                            <CardTitle>Emission Map</CardTitle>
+                    <Card className="w-full h-full flex flex-col">
+                        <CardHeader className="pb-2 flex-shrink-0">
+                            <CardTitle>Emission Map (Heat)</CardTitle>
                         </CardHeader>
-                        <CardContent>
-                            <div className="flex items-center justify-center h-full bg-gray-100 rounded-lg text-gray-400">
-                                <DeviceClusterMap />
+                        <CardContent className="flex-1 p-0 overflow-hidden">
+                            <div className="relative w-full h-full">
+                                <DeviceHeatMap />
                             </div>
                         </CardContent>
                     </Card>

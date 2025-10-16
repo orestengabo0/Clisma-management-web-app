@@ -25,19 +25,19 @@ type Props = {
 
 type ChartData = {
   type: string;
-  CO2: number;
-  NOx: number;
-  PM10: number;
-  CO: number;
-  PM25: number;
+  AQI: number;
+  MQ135: number;
+  MQ7: number;
+  COppm: number;
+  MQ135R: number;
 };
 
 const chartConfig = {
-  CO2: { label: "CO₂", color: "#6366F1" }, // indigo-500
-  NOx: { label: "NOx", color: "#FB7185" }, // rose-400
-  PM10: { label: "PM10", color: "#22D3EE" }, // cyan-400
-  CO: { label: "CO", color: "#F59E0B" }, // amber-500
-  PM25: { label: "PM2.5", color: "#10B981" }, // emerald-500
+  AQI: { label: "AQI", color: "#6366F1" },
+  MQ135: { label: "MQ135", color: "#FB7185" },
+  MQ7: { label: "MQ7", color: "#22D3EE" },
+  COppm: { label: "CO (ppm)", color: "#F59E0B" },
+  MQ135R: { label: "MQ135R", color: "#10B981" },
 } satisfies ChartConfig;
 
 export default function GeoHotspotBarChart({ className = "h-[24rem]" }: Props) {
@@ -62,21 +62,21 @@ export default function GeoHotspotBarChart({ className = "h-[24rem]" }: Props) {
             const data = await getEmissionAveragesByVehicleType(type);
             return {
               type: type.charAt(0) + type.slice(1).toLowerCase(), // Capitalize first letter
-              CO2: data.co2Level,
-              NOx: data.noxLevel,
-              PM10: data.pm10Level,
-              CO: data.coLevel,
-              PM25: data.pm25Level,
+              AQI: data.aqi,
+              MQ135: data.mq135,
+              MQ7: data.mq7,
+              COppm: data.coPpm,
+              MQ135R: data.mq135R,
             };
           } catch (error) {
             console.warn(`Failed to fetch data for ${type}:`, error);
             return {
               type: type.charAt(0) + type.slice(1).toLowerCase(),
-              CO2: 0,
-              NOx: 0,
-              PM10: 0,
-              CO: 0,
-              PM25: 0,
+              AQI: 0,
+              MQ135: 0,
+              MQ7: 0,
+              COppm: 0,
+              MQ135R: 0,
             };
           }
         });
@@ -104,7 +104,7 @@ export default function GeoHotspotBarChart({ className = "h-[24rem]" }: Props) {
 
   // Calculate max value for Y-axis domain
   const maxValue = Math.max(
-    ...chartData.flatMap(d => [d.CO2, d.NOx, d.PM10, d.CO, d.PM25])
+    ...chartData.flatMap(d => [d.AQI, d.MQ135, d.MQ7, d.COppm, d.MQ135R])
   );
   const yAxisMax = maxValue > 0 ? Math.ceil(maxValue * 1.1) : 100;
 
@@ -175,11 +175,11 @@ export default function GeoHotspotBarChart({ className = "h-[24rem]" }: Props) {
               />
               <ChartTooltip content={<ChartTooltipContent />} />
 
-              <Bar dataKey="CO2" fill={chartConfig.CO2.color} radius={[6, 6, 0, 0]} />
-              <Bar dataKey="NOx" fill={chartConfig.NOx.color} radius={[6, 6, 0, 0]} />
-              <Bar dataKey="PM10" fill={chartConfig.PM10.color} radius={[6, 6, 0, 0]} />
-              <Bar dataKey="CO" fill={chartConfig.CO.color} radius={[6, 6, 0, 0]} />
-              <Bar dataKey="PM25" fill={chartConfig.PM25.color} radius={[6, 6, 0, 0]} />
+              <Bar dataKey="AQI" fill={chartConfig.AQI.color} radius={[6, 6, 0, 0]} />
+              <Bar dataKey="MQ135" fill={chartConfig.MQ135.color} radius={[6, 6, 0, 0]} />
+              <Bar dataKey="MQ7" fill={chartConfig.MQ7.color} radius={[6, 6, 0, 0]} />
+              <Bar dataKey="COppm" fill={chartConfig.COppm.color} radius={[6, 6, 0, 0]} />
+              <Bar dataKey="MQ135R" fill={chartConfig.MQ135R.color} radius={[6, 6, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </ChartContainer>

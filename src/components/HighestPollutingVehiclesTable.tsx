@@ -47,16 +47,16 @@ const formatRate = (n: number) => `${Number.isInteger(n) ? n : n.toFixed(1)}%`;
 // Convert API data to Row format
 const convertApiDataToRows = (data: HighestPolluter[]): Row[] => {
   return data.map(item => {
-    // Determine which emissions are above average (simplified logic)
+    // Determine which metrics are elevated (simplified thresholds)
     const emissions: string[] = [];
-    if (item.co2Level > 100) emissions.push("CO2");
-    if (item.coLevel > 10) emissions.push("CO");
-    if (item.noxLevel > 5) emissions.push("NOx");
-    if (item.pm10Level > 50) emissions.push("PM10");
-    if (item.pm25Level > 25) emissions.push("PM2.5");
+    if (item.aqi > 50) emissions.push("AQI");
+    if (item.mq135 > 400) emissions.push("MQ135");
+    if (item.mq7 > 80) emissions.push("MQ7");
+    if (item.coPpm > 50) emissions.push("CO(ppm)");
+    if (item.mq135R > 10) emissions.push("MQ135R");
 
-    // Use totalScore as the rate (you might want to normalize this)
-    const rate = Math.min(100, Math.max(0, (item.totalScore / 4))); // Normalize to 0-100%
+    // Normalize totalScore to percentage display (domain assumption)
+    const rate = Math.min(100, Math.max(0, item.totalScore));
 
     return {
       plate: item.licensePlate,
@@ -91,11 +91,12 @@ export default function HighestPollutingVehiclesTable({
       vehicleType: r.vehicleType || "UNKNOWN",
       totalScore: r.totalScore ?? r.rate * 1,
       // Set unknown levels to 0 when not available
-      co2Level: 0,
-      coLevel: 0,
-      noxLevel: 0,
-      pm10Level: 0,
-      pm25Level: 0,
+      mq7: 0,
+      coPpm: 0,
+      aqi: 0,
+      mq135: 0,
+      mq135R: 0,
+      mq7R: 0,
       recordCount: 0,
     } as HighestPolluter;
   }, [selectedIndex, data, displayRows]);
@@ -191,24 +192,24 @@ export default function HighestPollutingVehiclesTable({
               </div>
               <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
                 <div className="rounded-md border p-3">
-                  <p className="text-xs text-muted-foreground">CO2</p>
-                  <p className="font-medium">{selectedPolluter.co2Level}</p>
+                  <p className="text-xs text-muted-foreground">AQI</p>
+                  <p className="font-medium">{selectedPolluter.aqi}</p>
                 </div>
                 <div className="rounded-md border p-3">
-                  <p className="text-xs text-muted-foreground">CO</p>
-                  <p className="font-medium">{selectedPolluter.coLevel}</p>
+                  <p className="text-xs text-muted-foreground">MQ135</p>
+                  <p className="font-medium">{selectedPolluter.mq135}</p>
                 </div>
                 <div className="rounded-md border p-3">
-                  <p className="text-xs text-muted-foreground">NOx</p>
-                  <p className="font-medium">{selectedPolluter.noxLevel}</p>
+                  <p className="text-xs text-muted-foreground">MQ7</p>
+                  <p className="font-medium">{selectedPolluter.mq7}</p>
                 </div>
                 <div className="rounded-md border p-3">
-                  <p className="text-xs text-muted-foreground">PM10</p>
-                  <p className="font-medium">{selectedPolluter.pm10Level}</p>
+                  <p className="text-xs text-muted-foreground">CO (ppm)</p>
+                  <p className="font-medium">{selectedPolluter.coPpm}</p>
                 </div>
                 <div className="rounded-md border p-3">
-                  <p className="text-xs text-muted-foreground">PM2.5</p>
-                  <p className="font-medium">{selectedPolluter.pm25Level}</p>
+                  <p className="text-xs text-muted-foreground">MQ135R</p>
+                  <p className="font-medium">{selectedPolluter.mq135R}</p>
                 </div>
               </div>
             </div>

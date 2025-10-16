@@ -4,14 +4,12 @@ import { AnalyticsCard } from './AnalyticsCard';
 import { FaCar } from 'react-icons/fa6';
 import { IoWarning, IoCarSportOutline } from "react-icons/io5";
 import { SiPodcastindex } from "react-icons/si";
-import DailyEmissionChart from './DailyEmissionChart';
-import { Button } from './ui/button';
 import DeviceClusterMap from './DeviceClusterMap';
-import { HiOutlineCpuChip } from "react-icons/hi2";
 import MonitoringTabs from './MonitoringTabs';
 import { useEffect, useState } from 'react';
 import { useAuthStore } from '@/lib/authStore';
 import { getHotspotsCount, getVehicleDetectionsCount } from '@/lib/api';
+import EmissionTrendChart from './EmissionTrendChart';
 
 export function DashboardSection() {
   const iconSize = 30;
@@ -48,14 +46,9 @@ export function DashboardSection() {
 
       {/* Top Section: Main Graph and Analytics Data */}
       <div className="flex flex-col md:flex-row gap-6">
-        <Card className="flex-1 flex flex-col p-3 pr-6 h-[30rem]">
-          <CardHeader className="pb-2">
-            <CardTitle>Emission Trends</CardTitle>
-          </CardHeader>
-          <CardContent className="flex-1 p-0">
-            <DailyEmissionChart className="h-full" />
-          </CardContent>
-        </Card>
+        <div className="flex-1 flex flex-col p-3 pr-6 h-[30rem]">
+            <EmissionTrendChart className="h-full" />
+        </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 md:w-1/2">
           <AnalyticsCard icon={<FaCar size={iconSize} />} title="Vehicles Detected" value={vehicleCount !== null ? vehicleCount.toLocaleString() : '—'} description="+400 from last month" />

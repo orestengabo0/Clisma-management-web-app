@@ -6,6 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog'
 import { Download, Eye, RefreshCcw, ArchiveRestore, Trash2, Trash, FileSpreadsheet, FileText, X, AlertTriangle } from 'lucide-react'
 import PdfViewer from './PdfViewer'
+import { fetchReportPdf, fetchReportCsv } from '@/lib/api'
 import { Separator } from './ui/separator'
 import { Skeleton } from './ui/skeleton'
 
@@ -19,6 +20,7 @@ type ReportItem = {
     inTrash: boolean
     url: string
     mimeType: string
+    sizeBytes?: number
 }
 
 type DateValidationError = {
@@ -144,6 +146,27 @@ const ReportSection = () => {
     const activeReports = useMemo(() => reports.filter(r => !r.inTrash), [reports])
     const trashedReports = useMemo(() => reports.filter(r => r.inTrash), [reports])
 
+    // Overview metrics
+    const totalGenerated = useMemo(() => reports.length, [reports])
+    const totalActive = useMemo(() => activeReports.length, [activeReports])
+    const totalTrashed = useMemo(() => trashedReports.length, [trashedReports])
+    const totalPdf = useMemo(() => reports.filter(r => r.type === 'PDF').length, [reports])
+    const totalCsv = useMemo(() => reports.filter(r => r.type === 'CSV').length, [reports])
+    const latestGeneratedAt = useMemo(() => {
+        if (reports.length === 0) return null
+        const latest = [...reports].sort((a, b) => new Date(b.dateGenerated).getTime() - new Date(a.dateGenerated).getTime())[0]
+        return latest.dateGenerated
+    }, [reports])
+    const totalSizeBytes = useMemo(() => reports.reduce((sum, r) => sum + (r.sizeBytes ?? 0), 0), [reports])
+    const humanSize = useMemo(() => {
+        const bytes = totalSizeBytes
+        if (bytes === 0) return '0 B'
+        const k = 1024
+        const sizes = ['B', 'KB', 'MB', 'GB']
+        const i = Math.floor(Math.log(bytes) / Math.log(k))
+        return `${(bytes / Math.pow(k, i)).toFixed(1)} ${sizes[i]}`
+    }, [totalSizeBytes])
+
     // Validation computed state
     const isDateRangeValid = useMemo(() => {
         const error = validateDateRange(startDate, endDate)
@@ -201,17 +224,14 @@ const ReportSection = () => {
 
         setIsGenerating(true)
         try {
-            // Simulate server processing time
-            await new Promise((res) => setTimeout(res, 1200))
-
             const name = `Report ${formatNow()} (${startDate}→${endDate})`
             let blob: Blob
             let mime: string
             if (format === 'PDF') {
-                blob = createSimplePdfBlob()
+                blob = await fetchReportPdf()
                 mime = 'application/pdf'
             } else {
-                blob = createSampleCsvBlob()
+                blob = await fetchReportCsv()
                 mime = 'text/csv'
             }
             const url = URL.createObjectURL(blob)
@@ -223,6 +243,7 @@ const ReportSection = () => {
                 inTrash: false,
                 url,
                 mimeType: mime,
+                sizeBytes: blob.size,
             }
             setReports(prev => [item, ...prev])
             setFeedback({ type: 'success', message: 'Report generated successfully.' })
@@ -395,6 +416,30 @@ const ReportSection = () => {
                         <div className="text-xs text-muted-foreground">
                             Reports will include data from <span className="font-medium">{startDate || '—'}</span> to <span className="font-medium">{endDate || '—'}</span>.
                         </div>
+                    </div>
+                </CardContent>
+            </Card>
+
+            {/* Overview section */}
+            <Card>
+                <CardHeader className="pb-2">
+                    <CardTitle>Overview</CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+                        <StatBox label="Total Generated" value={String(totalGenerated)} />
+                        <StatBox label="Active" value={String(totalActive)} />
+                        <StatBox label="In Trash" value={String(totalTrashed)} />
+                        <StatBox label="PDF Reports" value={String(totalPdf)} />
+                        <StatBox label="CSV Reports" value={String(totalCsv)} />
+                        <StatBox label="Total Size" value={humanSize} />
+                    </div>
+                    <div className="text-xs text-muted-foreground mt-3">
+                        {latestGeneratedAt ? (
+                            <>Last generated: <span className="font-medium">{new Date(latestGeneratedAt).toLocaleString()}</span></>
+                        ) : (
+                            <>No reports generated yet.</>
+                        )}
                     </div>
                 </CardContent>
             </Card>
@@ -593,3 +638,12 @@ function CsvPreview({ url }: { url: string }) {
 }
 
 export default ReportSection
+
+function StatBox({ label, value }: { label: string; value: string }) {
+    return (
+        <div className="rounded-md border p-3">
+            <div className="text-xs text-muted-foreground">{label}</div>
+            <div className="text-xl font-semibold">{value}</div>
+        </div>
+    )
+}

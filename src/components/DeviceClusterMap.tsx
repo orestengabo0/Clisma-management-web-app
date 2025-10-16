@@ -6,7 +6,7 @@ import L from 'leaflet';
 import { getHotspots, type Hotspot } from '@/lib/api';
 import { useAuthStore } from '@/lib/authStore';
 
-const defaultCenter: [number, number] = [0, 0];
+const defaultCenter: [number, number] = [-1.661338, 29.510861];
 
 function computeCenter(hotspots: Hotspot[]): [number, number] {
     if (!hotspots.length) return defaultCenter;

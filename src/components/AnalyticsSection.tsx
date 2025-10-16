@@ -3,7 +3,7 @@ import React, { useMemo, useState, useEffect } from 'react'
 import { MonthRange, MonthRangePicker, MONTHS } from './EmissionPieChart'
 import { LocationPicker } from './LocationPicker';
 import VehiclePicker from './VehiclePicker';
-import DailyEmissionChart from './DailyEmissionChart';
+import EmissionTrendChart from './EmissionTrendChart';
 import TopEmissionBarchart, { ChartDataPoint } from './TopEmissionBarchart';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { StatsCard } from './StatsCard';
@@ -31,12 +31,14 @@ const AnalyticsSection = () => {
   const token = useAuthStore((s) => s.token);
   const [hotspots, setHotspots] = useState<Hotspot[]>([]);
   const [chartData, setChartData] = useState<ChartDataPoint[]>([]);
+  const [chartLoading, setChartLoading] = useState<boolean>(false);
+  const [chartError, setChartError] = useState<string | null>(null);
   const [highestPolluters, setHighestPolluters] = useState<HighestPolluter[]>([]);
-  const [co2, setCo2] = useState<number>(0);
-  const [nox, setNox] = useState<number>(0);
-  const [pm10, setPm10] = useState<number>(0);
-  const [co, setCo] = useState<number>(0);
-  const [pm25, setPm25] = useState<number>(0);
+  const [aqi, setAqi] = useState<number>(0);
+  const [mq135, setMq135] = useState<number>(0);
+  const [mq7, setMq7] = useState<number>(0);
+  const [coPpm, setCoPpm] = useState<number>(0);
+  const [mq135R, setMq135R] = useState<number>(0);
 
   const rangeLabel = useMemo(
     () => `${MONTHS[range.start.month]} ${range.start.year} – ${MONTHS[range.end.month]} ${range.end.year}`,
@@ -48,6 +50,8 @@ const AnalyticsSection = () => {
     if (!token) return;
     let isCancelled = false;
     (async () => {
+      setChartLoading(true);
+      setChartError(null);
       try {
         const [avg, response, polluters] = await Promise.all([
           getEmissionAverages(),
@@ -55,11 +59,11 @@ const AnalyticsSection = () => {
           getHighestPollutingVehicles("total", 10),
         ]);
         if (!isCancelled) {
-          setCo2(avg.co2Level);
-          setNox(avg.noxLevel);
-          setPm10(avg.pm10Level);
-          setCo(avg.coLevel);
-          setPm25(avg.pm25Level);
+          setAqi(avg.aqi);
+          setMq135(avg.mq135);
+          setMq7(avg.mq7);
+          setCoPpm(avg.coPpm);
+          setMq135R(avg.mq135R);
         }
         if (!isCancelled) {
           setHotspots(response.content);
@@ -73,8 +77,10 @@ const AnalyticsSection = () => {
         if (!isCancelled) {
           setHighestPolluters(polluters);
         }
-      } catch {
-        // ignore errors for now; could add UI toast/logging later
+      } catch (e) {
+        setChartError(e instanceof Error ? e.message : 'Failed to load top polluted areas');
+      } finally {
+        setChartLoading(false);
       }
     })();
     return () => {
@@ -110,17 +116,10 @@ const AnalyticsSection = () => {
       {/* Charts: 2/3 left (Daily) and 1/3 right (Top Emission) */}
       <div className="grid grid-cols-1 lg:grid-cols-[2fr_1fr] gap-6 items-stretch">
         {/* Left: Daily Emission Trends */}
-        <Card className="h-[28rem] flex flex-col overflow-hidden">
-          <CardHeader className="pb-2">
-            <CardTitle>Daily Emission Trends</CardTitle>
-          </CardHeader>
-          <CardContent className="flex-1 p-4 pr-6 min-h-0">
-            <DailyEmissionChart className="h-full" />
-          </CardContent>
-        </Card>
+        <EmissionTrendChart />
 
         {/* Right: Top Emission Bar Chart */}
-        <TopEmissionBarchart data={chartData} />
+        <TopEmissionBarchart data={chartData} loading={chartLoading} error={chartError} />
       </div>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <StatsCard
@@ -152,10 +151,10 @@ const AnalyticsSection = () => {
         />
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-4 gap-6">
-        <GasesStatCard gas="CO2" value={co2} unit="ppm" variant="emerald" />
-        <GasesStatCard gas="NOx" value={nox} unit="ppm" variant="rose" />
-        <GasesStatCard gas="PM10" value={pm10} unit="µg/m³" variant="amber" />
-        <GasesStatCard gas="CO" value={co} unit="ppm" variant="emerald" />
+        <GasesStatCard gas="AQI" value={aqi} unit="" variant="emerald" />
+        <GasesStatCard gas="MQ135" value={mq135} unit="ppm" variant="rose" />
+        <GasesStatCard gas="MQ7" value={mq7} unit="ppm" variant="amber" />
+        <GasesStatCard gas="CO (ppm)" value={coPpm} unit="ppm" variant="emerald" />
       </div>
       <div className='grid grid-cols-1 lg:grid-cols-3 gap-6'>
         <HotspotsHeatMap />
